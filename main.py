@@ -4,6 +4,8 @@ import json
 import math
 
 
+MAX_COURSE_CAPACITY = 210
+
 groups_sheet = pd.read_csv("DataSheets/groups.csv")
 rooms_sheet = pd.read_csv("DataSheets/rooms.csv")
 subjects_sheet = pd.read_csv("DataSheets/subjects.csv")
@@ -140,7 +142,7 @@ def extract_rooms():
         }
 
 
-def main():
+def process_data():
     group_teachers()
     format_subjects()
     group_groups()
@@ -162,6 +164,104 @@ def main():
     with open("rooms.json", "w") as f:
         f.write(json.dumps(rooms, indent=4))
         f.close()
+
+
+def get_groups(
+        subject_id,
+        language
+):
+    local_groups = {
+        "course": [],
+        "course_hours": 0,
+        "seminar": [],
+        "seminar_hours": 0,
+        "laboratory": [],
+        "laboratory_hours": 0
+    }
+
+    if subjects[subject_id]["course"] is not None:
+        local_groups["course"] = subjects[subject_id]["course"]["groups"][language]
+        local_groups["course_hours"] = subjects[subject_id]["course"]["hours_w"]
+    if subjects[subject_id]["seminar"] is not None:
+        local_groups["seminar"] = subjects[subject_id]["seminar"]["groups"][language]
+        local_groups["seminar_hours"] = subjects[subject_id]["seminar"]["hours_w"]
+    if subjects[subject_id]["laboratory"] is not None:
+        local_groups["laboratory"] = subjects[subject_id]["laboratory"]["groups"][language]
+        local_groups["laboratory_hours"] = subjects[subject_id]["laboratory"]["hours_w"]
+
+    return local_groups
+
+
+def get_course_groups(
+        subject_id,
+        language
+):
+    return get_groups(subject_id, language)["course"]
+
+
+def main():
+    process_data()
+
+    for subject_id in subjects.keys():
+        speciality_groups = {
+            "ro": [],
+            "ru": [],
+            "fr": [],
+            "eng": []
+        }
+        for language in ["ro", "ru", "fr", "eng"]:
+            course_groups = get_course_groups(subject_id, language)
+            # Phase 1: place each group in standalone group
+            for course_group in course_groups:
+                speciality_groups[language].append(([course_group], groups[course_group]["count"]))
+
+            # Phase 2: merge groups with same speciality
+            temp_dict = {}
+            for gr in speciality_groups[language]:
+                if groups[gr[0][0]]["speciality"] not in temp_dict.keys():
+                    temp_dict[groups[gr[0][0]]["speciality"]] = []
+                temp_dict[groups[gr[0][0]]["speciality"]].append(gr)
+            speciality_groups[language] = []
+
+            for key in temp_dict.keys():
+                speciality_groups[language].append(
+                    (
+                        [temp_dict[key][i][0][0] for i in range(len(temp_dict[key]))],
+                        sum(temp_dict[key][i][1] for i in range(len(temp_dict[key])))
+                    )
+                )
+
+            # Phase 3: merge groups with the lowest number of students
+            while True:
+                change_happened = False
+                min_1, min_2 = MAX_COURSE_CAPACITY, MAX_COURSE_CAPACITY
+                min_1_index, min_2_index = None, None
+                for gr in speciality_groups[language]:
+                    if gr[1] < min_1:
+                        min_1 = gr[1]
+                        min_1_index = speciality_groups[language].index(gr)
+                    elif gr[1] < min_2:
+                        min_2 = gr[1]
+                        min_2_index = speciality_groups[language].index(gr)
+
+                if min_1_index is not None and min_2_index is not None:
+                    if speciality_groups[language][min_1_index][1] + speciality_groups[language][min_2_index][1] <= MAX_COURSE_CAPACITY:
+                        speciality_groups[language][min_1_index] = (
+                            speciality_groups[language][min_1_index][0] + speciality_groups[language][min_2_index][0],
+                            speciality_groups[language][min_1_index][1] + speciality_groups[language][min_2_index][1]
+                        )
+                        speciality_groups[language].pop(min_2_index)
+                        change_happened = True
+
+                # print(min_1_index, min_1, min_2_index, min_2)
+
+                if not change_happened:
+                    break
+
+            print(subject_id, language, speciality_groups[language])
+
+        # TODO: Remove break
+        # break
 
 
 if __name__ == "__main__":

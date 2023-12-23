@@ -17,7 +17,7 @@ groups = {}
 rooms = {}
 
 
-def group_teachers():
+def group_teachers() -> None:
     for teacher in teachers_sheet.iterrows():
         if teacher[1]["subject"] not in subject_teacher.keys():
             subject_teacher[teacher[1]["subject"]] = {
@@ -36,7 +36,7 @@ def group_teachers():
             subject_teacher[teacher[1]["subject"]]["laboratory"] = teacher[1]["id"]
 
 
-def format_subjects():
+def format_subjects() -> None:
     for subject in subjects_sheet.iterrows():
         if subject[1]["id"] not in subjects.keys():
             subjects[subject[1]["id"]] = {
@@ -101,7 +101,7 @@ def format_subjects():
             subjects[subject[1]["id"]]["laboratory"] = None
 
 
-def group_groups():
+def group_groups() -> None:
     for group in groups_sheet.iterrows():
         group_id = group[1]["id"]
         group_language = group[1]["language"]
@@ -120,7 +120,7 @@ def group_groups():
                     subjects[group_subject_id]["laboratory"]["groups"][group_language].append(group_id)
 
 
-def extract_groups():
+def extract_groups() -> None:
     for group in groups_sheet.iterrows():
         group_speciality = group[1]["speciality"]
         if group[1]["id"] not in groups.keys():
@@ -132,7 +132,7 @@ def extract_groups():
             }
 
 
-def extract_rooms():
+def extract_rooms() -> None:
     for room in rooms_sheet.iterrows():
         room_id = room[1]["id "]
         room_id = room_id.replace(" ", "")
@@ -142,7 +142,7 @@ def extract_rooms():
         }
 
 
-def process_data():
+def process_data() -> None:
     group_teachers()
     format_subjects()
     group_groups()
@@ -169,7 +169,7 @@ def process_data():
 def get_groups(
         subject_id,
         language
-):
+) -> dict:
     local_groups = {
         "course": [],
         "course_hours": 0,
@@ -192,7 +192,7 @@ def get_groups(
     return local_groups
 
 
-def get_course_groups():
+def get_course_groups() -> dict:
     grs = {}
 
     for subject_id in subjects.keys():
@@ -256,10 +256,27 @@ def get_course_groups():
     return grs
 
 
+def order_teachers() -> dict:
+    teachers_hours = {}
+    schedule = [
+        "mon_per_1", "mon_per_2", "mon_per_3", "mon_per_4", "mon_per_5", "mon_per_6", "mon_per_7",
+        "tue_per_1", "tue_per_2", "tue_per_3", "tue_per_4", "tue_per_5", "tue_per_6", "tue_per_7",
+        "wed_per_1", "wed_per_2", "wed_per_3", "wed_per_4", "wed_per_5", "wed_per_6", "wed_per_7",
+        "thu_per_1", "thu_per_2", "thu_per_3", "thu_per_4", "thu_per_5", "thu_per_6", "thu_per_7",
+        "fri_per_1", "fri_per_2", "fri_per_3", "fri_per_4", "fri_per_5", "fri_per_6", "fri_per_7",
+        "sat_per_1", "sat_per_2", "sat_per_3", "sat_per_4", "sat_per_5", "sat_per_6", "sat_per_7"
+    ]
+    for teacher in teachers_sheet.iterrows():
+        teacher_hours = 0
+        for course in schedule:
+            teacher_hours += teacher[1][course]
+        teachers_hours[teacher[1]["id"]] = teacher_hours
+    teachers_hours = dict(sorted(teachers_hours.items(), key=lambda item: item[1], reverse=False))
+    return teachers_hours
+
+
 def main():
     process_data()
-
-    # print(get_course_groups())
 
 
 if __name__ == "__main__":

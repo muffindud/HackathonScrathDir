@@ -192,17 +192,11 @@ def get_groups(
     return local_groups
 
 
-def get_course_groups(
-        subject_id,
-        language
-):
-    return get_groups(subject_id, language)["course"]
-
-
-def main():
-    process_data()
+def get_course_groups():
+    grs = {}
 
     for subject_id in subjects.keys():
+        grs[subject_id] = {}
         speciality_groups = {
             "ro": [],
             "ru": [],
@@ -210,7 +204,7 @@ def main():
             "eng": []
         }
         for language in ["ro", "ru", "fr", "eng"]:
-            course_groups = get_course_groups(subject_id, language)
+            course_groups = get_groups(subject_id, language)["course"]
             # Phase 1: place each group in standalone group
             for course_group in course_groups:
                 speciality_groups[language].append(([course_group], groups[course_group]["count"]))
@@ -253,15 +247,19 @@ def main():
                         speciality_groups[language].pop(min_2_index)
                         change_happened = True
 
-                # print(min_1_index, min_1, min_2_index, min_2)
-
                 if not change_happened:
                     break
 
-            print(subject_id, language, speciality_groups[language])
+            # print(subject_id, language, speciality_groups[language])
+            grs[subject_id][language] = speciality_groups[language]
 
-        # TODO: Remove break
-        # break
+    return grs
+
+
+def main():
+    process_data()
+
+    # print(get_course_groups())
 
 
 if __name__ == "__main__":

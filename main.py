@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import json
+import math
 
 
 groups_sheet = pd.read_csv("DataSheets/groups.csv")
@@ -10,6 +12,7 @@ teachers_sheet = pd.read_csv("DataSheets/teachers.csv")
 subject_teacher = {}
 subjects = {}
 groups = {}
+rooms = {}
 
 
 def group_teachers():
@@ -127,11 +130,22 @@ def extract_groups():
             }
 
 
+def extract_rooms():
+    for room in rooms_sheet.iterrows():
+        room_id = room[1]["id "]
+        room_id = room_id.replace(" ", "")
+        rooms[room_id] = {
+            "capacity": int(room[1]["nr_persons"]) if not math.isnan(room[1]["nr_persons"]) else None,
+            "laboratory": True if room[1]["is_lab_cab"] == "1" else False
+        }
+
+
 def main():
     group_teachers()
     format_subjects()
     group_groups()
     extract_groups()
+    extract_rooms()
 
     with open("subject_teacher.json", "w") as f:
         f.write(json.dumps(subject_teacher, indent=4))
@@ -143,6 +157,10 @@ def main():
 
     with open("groups.json", "w") as f:
         f.write(json.dumps(groups, indent=4))
+        f.close()
+
+    with open("rooms.json", "w") as f:
+        f.write(json.dumps(rooms, indent=4))
         f.close()
 
 

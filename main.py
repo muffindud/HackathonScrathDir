@@ -25,8 +25,8 @@ subjects = {}
 groups = {}
 rooms = {}
 
-teacher_table = {}
-group_table = {}
+teacher_table = [{}, {}]
+group_table = [{}, {}]
 
 
 def group_teachers() -> None:
@@ -157,15 +157,18 @@ def extract_rooms() -> None:
 def format_teacher_table() -> None:
     for teacher in teachers_sheet.iterrows():
         teacher_id = teacher[1]["id"]
-        teacher_table[teacher_id] = {}
+        teacher_table[0][teacher_id] = {}
+        teacher_table[1][teacher_id] = {}
         for course in course_code:
             if teacher[1][course] != 0:
-                teacher_table[teacher_id][course] = {}
+                teacher_table[0][teacher_id][course] = {}
+                teacher_table[1][teacher_id][course] = {}
 
 
 def format_group_table() -> None:
     for group in groups:
-        group_table[group] = []
+        group_table[0][group] = []
+        group_table[1][group] = []
 
 
 def process_data() -> None:
@@ -193,8 +196,12 @@ def process_data() -> None:
         f.write(json.dumps(rooms, indent=4))
         f.close()
 
-    with open("teacher_table.json", "w") as f:
-        f.write(json.dumps(teacher_table, indent=4))
+    with open("teacher_table_sem1.json", "w") as f:
+        f.write(json.dumps(teacher_table[0], indent=4))
+        f.close()
+
+    with open("teacher_table_sem2.json", "w") as f:
+        f.write(json.dumps(teacher_table[1], indent=4))
         f.close()
 
 
@@ -317,30 +324,31 @@ def main():
                 teacher_subject = subject
                 teacher_subject_type.append("laboratory")
         # print(teacher, ordered_teachers[teacher], teacher_subject, teacher_subject_type)
-        for subject_type in teacher_subject_type:
-            if subjects[teacher_subject][subject_type] is not None:
-                if subject_type != "course":
-                    for lang in subjects[teacher_subject][subject_type]["groups"]:
-                        for group in subjects[teacher_subject][subject_type]["groups"][lang]:
-                            # Check if group is already in schedule
-                            for course in course_code:
-                                if course not in group_table[group] and course in teacher_table[teacher].keys():
-                                    if teacher_table[teacher][course] == {}:
-                                        teacher_table[teacher][course] = {
+        for semester in subjects[teacher_subject]["semester"]:
+            semester = (semester + 1) % 2
+            for s_type in ["course", "seminar", "laboratory"]:
+                if subjects[teacher_subject][s_type] is not None:
+                    for lang in subjects[teacher_subject][s_type]["groups"].keys():
+                        if s_type != "course":
+                            for group in subjects[teacher_subject][s_type]["groups"][lang]:
+                                for course in teacher_table[semester][teacher].keys():
+                                    if course not in group_table[semester][group] and teacher_table[semester][teacher][course] == {}:
+                                        group_table[semester][group].append(course)
+                                        teacher_table[semester][teacher][course] = {
                                             "subject": teacher_subject,
-                                            "type": subject_type,
                                             "group": group,
-                                            "language": lang
+                                            "type": s_type,
+                                            "language": lang,
                                         }
-                                        group_table[group].append(course)
-                                        # print(group_table)
                                         break
-                            ...
-                else:
-                    # Handle course groups
-                    ...
 
-    print(json.dumps(teacher_table, indent=4))
+    with open("teacher_table_sem1.json", "w") as f:
+        f.write(json.dumps(teacher_table[0], indent=4))
+        f.close()
+
+    with open("teacher_table_sem2.json", "w") as f:
+        f.write(json.dumps(teacher_table[1], indent=4))
+        f.close()
 
 
 if __name__ == "__main__":

@@ -28,6 +28,8 @@ rooms = {}
 teacher_table = [{}, {}]
 group_table = [{}, {}]
 
+group_schedule = [{}, {}]
+
 
 def group_teachers() -> None:
     for teacher in teachers_sheet.iterrows():
@@ -354,12 +356,46 @@ def main():
                                         }
                                         break
 
+    for semester in range(2):
+        for teacher in teacher_table[semester].keys():
+            for course in teacher_table[semester][teacher].keys():
+                if teacher_table[semester][teacher][course] != {}:
+                    if teacher_table[semester][teacher][course]["type"] != "course":
+                        if teacher_table[semester][teacher][course]["group"] not in group_schedule[semester].keys():
+                            group_schedule[semester][teacher_table[semester][teacher][course]["group"]] = []
+                        group_schedule[semester][teacher_table[semester][teacher][course]["group"]].append({
+                            "teacher": teacher,
+                            "subject": teacher_table[semester][teacher][course]["subject"],
+                            "type": teacher_table[semester][teacher][course]["type"],
+                            "language": teacher_table[semester][teacher][course]["language"],
+                            "course": course
+                        })
+                    else:
+                        for group in teacher_table[semester][teacher][course]["group"]:
+                            if group not in group_schedule[semester].keys():
+                                group_schedule[semester][group] = []
+                            group_schedule[semester][group].append({
+                                "teacher": teacher,
+                                "subject": teacher_table[semester][teacher][course]["subject"],
+                                "type": teacher_table[semester][teacher][course]["type"],
+                                "language": teacher_table[semester][teacher][course]["language"],
+                                "course": course
+                            })
+
     with open("teacher_table_sem1.json", "w") as f:
         f.write(json.dumps(teacher_table[0], indent=4))
         f.close()
 
     with open("teacher_table_sem2.json", "w") as f:
         f.write(json.dumps(teacher_table[1], indent=4))
+        f.close()
+
+    with open("group_table_sem1.json", "w") as f:
+        f.write(json.dumps(group_schedule[0], indent=4))
+        f.close()
+
+    with open("group_table_sem2.json", "w") as f:
+        f.write(json.dumps(group_schedule[1], indent=4))
         f.close()
 
 

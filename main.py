@@ -11,10 +11,22 @@ rooms_sheet = pd.read_csv("DataSheets/rooms.csv")
 subjects_sheet = pd.read_csv("DataSheets/subjects.csv")
 teachers_sheet = pd.read_csv("DataSheets/teachers.csv")
 
+course_code = [
+    "mon_per_1", "mon_per_2", "mon_per_3", "mon_per_4", "mon_per_5", "mon_per_6", "mon_per_7",
+    "tue_per_1", "tue_per_2", "tue_per_3", "tue_per_4", "tue_per_5", "tue_per_6", "tue_per_7",
+    "wed_per_1", "wed_per_2", "wed_per_3", "wed_per_4", "wed_per_5", "wed_per_6", "wed_per_7",
+    "thu_per_1", "thu_per_2", "thu_per_3", "thu_per_4", "thu_per_5", "thu_per_6", "thu_per_7",
+    "fri_per_1", "fri_per_2", "fri_per_3", "fri_per_4", "fri_per_5", "fri_per_6", "fri_per_7",
+    "sat_per_1", "sat_per_2", "sat_per_3", "sat_per_4", "sat_per_5", "sat_per_6", "sat_per_7"
+]
+
 subject_teacher = {}
 subjects = {}
 groups = {}
 rooms = {}
+
+teacher_table = {}
+group_table = {}
 
 
 def group_teachers() -> None:
@@ -142,12 +154,28 @@ def extract_rooms() -> None:
         }
 
 
+def format_teacher_table() -> None:
+    for teacher in teachers_sheet.iterrows():
+        teacher_id = teacher[1]["id"]
+        teacher_table[teacher_id] = {}
+        for course in course_code:
+            if teacher[1][course] != 0:
+                teacher_table[teacher_id][course] = {}
+
+
+def format_group_table() -> None:
+    for group in groups:
+        group_table[group] = []
+
+
 def process_data() -> None:
     group_teachers()
     format_subjects()
     group_groups()
     extract_groups()
     extract_rooms()
+    format_teacher_table()
+    format_group_table()
 
     with open("subject_teacher.json", "w") as f:
         f.write(json.dumps(subject_teacher, indent=4))
@@ -163,6 +191,10 @@ def process_data() -> None:
 
     with open("rooms.json", "w") as f:
         f.write(json.dumps(rooms, indent=4))
+        f.close()
+
+    with open("teacher_table.json", "w") as f:
+        f.write(json.dumps(teacher_table, indent=4))
         f.close()
 
 
@@ -258,17 +290,9 @@ def get_course_groups() -> dict:
 
 def order_teachers() -> dict:
     teachers_hours = {}
-    schedule = [
-        "mon_per_1", "mon_per_2", "mon_per_3", "mon_per_4", "mon_per_5", "mon_per_6", "mon_per_7",
-        "tue_per_1", "tue_per_2", "tue_per_3", "tue_per_4", "tue_per_5", "tue_per_6", "tue_per_7",
-        "wed_per_1", "wed_per_2", "wed_per_3", "wed_per_4", "wed_per_5", "wed_per_6", "wed_per_7",
-        "thu_per_1", "thu_per_2", "thu_per_3", "thu_per_4", "thu_per_5", "thu_per_6", "thu_per_7",
-        "fri_per_1", "fri_per_2", "fri_per_3", "fri_per_4", "fri_per_5", "fri_per_6", "fri_per_7",
-        "sat_per_1", "sat_per_2", "sat_per_3", "sat_per_4", "sat_per_5", "sat_per_6", "sat_per_7"
-    ]
     for teacher in teachers_sheet.iterrows():
         teacher_hours = 0
-        for course in schedule:
+        for course in course_code:
             teacher_hours += teacher[1][course]
         teachers_hours[teacher[1]["id"]] = teacher_hours
     teachers_hours = dict(sorted(teachers_hours.items(), key=lambda item: item[1], reverse=False))
@@ -277,6 +301,46 @@ def order_teachers() -> dict:
 
 def main():
     process_data()
+
+    ordered_teachers = order_teachers()
+    for teacher in ordered_teachers.keys():
+        teacher_subject = None
+        teacher_subject_type = []
+        for subject in subject_teacher.keys():
+            if subject_teacher[subject]["course"] == teacher:
+                teacher_subject = subject
+                teacher_subject_type.append("course")
+            if subject_teacher[subject]["seminar"] == teacher:
+                teacher_subject = subject
+                teacher_subject_type.append("seminar")
+            if subject_teacher[subject]["laboratory"] == teacher:
+                teacher_subject = subject
+                teacher_subject_type.append("laboratory")
+        # print(teacher, ordered_teachers[teacher], teacher_subject, teacher_subject_type)
+        for subject_type in teacher_subject_type:
+            if subjects[teacher_subject][subject_type] is not None:
+                if subject_type != "course":
+                    for lang in subjects[teacher_subject][subject_type]["groups"]:
+                        for group in subjects[teacher_subject][subject_type]["groups"][lang]:
+                            # Check if group is already in schedule
+                            for course in course_code:
+                                if course not in group_table[group] and course in teacher_table[teacher].keys():
+                                    if teacher_table[teacher][course] == {}:
+                                        teacher_table[teacher][course] = {
+                                            "subject": teacher_subject,
+                                            "type": subject_type,
+                                            "group": group,
+                                            "language": lang
+                                        }
+                                        group_table[group].append(course)
+                                        # print(group_table)
+                                        break
+                            ...
+                else:
+                    # Handle course groups
+                    ...
+
+    print(json.dumps(teacher_table, indent=4))
 
 
 if __name__ == "__main__":

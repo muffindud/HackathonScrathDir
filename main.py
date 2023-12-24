@@ -308,9 +308,7 @@ def order_teachers() -> dict:
     return teachers_hours
 
 
-def main():
-    process_data()
-
+def compute_schedule() -> None:
     ordered_teachers = order_teachers()
     for teacher in ordered_teachers.keys():
         teacher_subject = None
@@ -399,5 +397,10 @@ def main():
         f.close()
 
 
+def compute():
+    process_data()
+    compute_schedule()
+
+
 if __name__ == "__main__":
-    main()
+    compute()

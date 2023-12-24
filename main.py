@@ -341,6 +341,18 @@ def main():
                                             "language": lang,
                                         }
                                         break
+                        else:
+                            for group in get_course_groups()[teacher_subject][lang]:
+                                for course in teacher_table[semester][teacher].keys():
+                                    if course not in group_table[semester][group[0][0]] and teacher_table[semester][teacher][course] == {}:
+                                        group_table[semester][group[0][0]].append(course)
+                                        teacher_table[semester][teacher][course] = {
+                                            "subject": teacher_subject,
+                                            "group": group[0],
+                                            "type": s_type,
+                                            "language": lang,
+                                        }
+                                        break
 
     with open("teacher_table_sem1.json", "w") as f:
         f.write(json.dumps(teacher_table[0], indent=4))
